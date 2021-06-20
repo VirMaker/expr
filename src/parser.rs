@@ -1,5 +1,5 @@
 use crate::tokenizer::{ Token };
-use super::{Expr, Error, Position, BinaryExpr};
+use super::{Expr, Error, BinaryExpr, FuncExpr};
 use std::iter::Peekable;
 use std::slice::Iter;
 use crate::operator as operator;
@@ -50,13 +50,13 @@ fn singular(tokens: &mut Peekable<Iter<Token>>) -> Result<Expr, Error> {
                 })
             },
             Token::Str(name) => {
-                tokens.next(); //consume string
+                tokens.next(); //consume STRING
                 match tokens.peek() {
                     Some(Token::LParen(_)) => {
-                        Ok(Expr::Func {
+                        Ok(Expr::Func(Box::new(FuncExpr {
                             name: *name, 
                             params: params(tokens)?
-                        })
+                        })))
                     },
                     _ => {
                         Ok(Expr::Variable(*name))
@@ -127,10 +127,11 @@ fn error(error: &str, _token:Token) -> Result<Expr, Error> {
 #[cfg(test)]
 mod parse_should {
     use super::*;
+    use super::super::Position;
     use crate::operator as operator;
 
     const NUMBER: Token = Token::Number(Position { at: 0, len: 0 });
-    const string: Token = Token::Str(Position { at: 0, len: 0 });
+    const STRING: Token = Token::Str(Position { at: 0, len: 0 });
     const L_PAREN: Token = Token::LParen(0);
     const R_PAREN: Token = Token::RParen(0);
     const operator: Token = Token::Operator { at: 0, operator_ix: 0 };
@@ -190,28 +191,29 @@ mod parse_should {
 
     #[test]
     fn handle_variable() {
-        let tokens = vec![string];
+        let tokens = vec![STRING];
         let expr = parse(tokens).unwrap();
         assert_matches!(expr, Expr::Variable(..));
     }
 
     #[test]
     fn handle_func_no_params() {
-        let tokens = vec![string, L_PAREN, R_PAREN];
+        let tokens = vec![STRING, L_PAREN, R_PAREN];
         assert_matches!(parse(tokens), Ok(Expr::Func{..}));
     }
 
     #[test]
     fn handle_func_with_params() {
         let tokens = vec![
-            string, 
+            STRING, 
             L_PAREN, 
             NUMBER, 
             Token::Comma(0), 
             NUMBER, 
             R_PAREN
         ];
-        if let Ok(Expr::Func{name:_, params}) = parse(tokens) { 
+        if let Ok(Expr::Func(boxed)) = parse(tokens) {
+            let FuncExpr{name:_, params} = *boxed;
             assert_eq!(params.len(), 2);
         }
         else { assert!(false) }

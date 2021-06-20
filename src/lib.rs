@@ -1,4 +1,4 @@
-    
+#[cfg(test)]
 #[macro_use]
 extern crate matches;
 
@@ -25,9 +25,15 @@ impl Position {
 pub enum Expr {
     Number(Position),
     Variable(Position),
-    Func { name: Position, params: Vec<Expr> },
+    Func ( Box<FuncExpr> ),
     Unary{ expr: Box<Expr>, operator_ix: u8 },
     Binary(Box<BinaryExpr>)
+}
+
+#[derive(Debug)]
+pub struct FuncExpr {
+    name: Position,
+    params: Vec<Expr>
 }
 
 #[derive(Debug)]
@@ -75,7 +81,8 @@ fn eval_expr(expr:&Expr, expression: &str) -> f32 {
         Expr::Variable(_pos)=> {
             1f32
         }
-        Expr::Func{ name, params } => {
+        Expr::Func( boxed_func ) => {
+            let FuncExpr { name, params } = &**boxed_func;
             match &expression[name.to_range()] {
                 "pi" => std::f64::consts::PI as f32,
                 "if" => {
@@ -105,6 +112,11 @@ pub struct Error {
 mod evaluate_should {
     use super::*;
     
+    #[test]
+    fn not_exceed_16_bytes() {
+        assert!(std::mem::size_of::<Expr>() <= 16);
+    }
+
     #[test]
     fn handle_numbers() {
         assert_eq!(evaluate("1").unwrap(), 1.0);
