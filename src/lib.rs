@@ -39,14 +39,14 @@ pub struct FuncExpr {
 #[derive(Debug)]
 pub struct BinaryExpr {
     left: Expr,
-    operator_ix: u8,
-    right: Expr
+    right: Expr,
+    operator_ix: u8
 }
 
 
 pub fn evaluate(expression: &str) -> Result<f32, Error> {
-    let tokens = tokenizer::tokenize(expression)?;
-    let expr = parser::parse(tokens)?;
+    let mut tokens = tokenizer::Tokens::new(expression);
+    let expr = parser::parse(&mut tokens)?;
     Ok(eval_expr(&expr, expression))
 }
 
@@ -113,7 +113,7 @@ mod evaluate_should {
     use super::*;
     
     #[test]
-    fn not_exceed_16_bytes() {
+    fn have_16_bytes_token_max() {
         assert!(std::mem::size_of::<Expr>() <= 16);
     }
 
