@@ -5,22 +5,32 @@ use crate::operator as operator;
 
 
 pub fn parse<'a>(tokens: &mut (impl Iterator<Item = Result<Token,Error>> + 'a)) -> Result<Expr, Error> {
+    let mut has_error:Option<Error> = None;
     let mut enumerator = tokens
-        .take_while(|r| Result::is_ok(r))
-        .map(|r| r.unwrap())
+        .scan(&mut has_error, |err, res| match res {
+            Ok(token)  => Some(token),
+            Err(e) => {
+                **err = Some(e);
+                None
+            }
+        })
         .peekable();
     let result = expr(&mut enumerator, 0);
-    // check for errors or unconsumed tokens
+    // check unconsumed tokens
     if let Some(token) = enumerator.next() {
         return error("Unexpected token ", token);
-    }    
+    }
+    // check for errors
+    if let Some(err) = has_error {
+        return Err(err);
+    }
+    
     result
 }
 
 fn peek(tokens: &mut Peekable<impl Iterator<Item=Token>>) -> Option<Token> {
     tokens.peek().map(|t| *t)
 }
-
 
 fn expr(tokens: &mut Peekable<impl Iterator<Item=Token>>, precedence: u8) -> Result<Expr, Error> {
     let mut left = singular(tokens);
