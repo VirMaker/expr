@@ -128,8 +128,10 @@ mod tokenize_should {
     }
 
     #[test]
-    fn have_16_bytes_token_max() {
-        assert!(std::mem::size_of::<Token>() <= 16);
+    fn have_12_bytes_token_max() {
+        // this size is not that imporant since tokens
+        // are evaluated lazily and are not accumulated
+        assert!(std::mem::size_of::<Token>() <= 12);
     }
     
     #[test]

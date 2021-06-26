@@ -4,7 +4,7 @@ use std::iter::Peekable;
 use crate::operator as operator;
 
 
-pub fn parse<'a>(tokens: &mut (impl Iterator<Item = Result<Token,Error>> + 'a)) -> Result<Expr, Error> {
+pub fn parse(tokens: &mut impl Iterator<Item = Result<Token,Error>>) -> Result<Expr, Error> {
     let mut has_error:Option<Error> = None;
     let mut enumerator = tokens
         .scan(&mut has_error, |err, res| match res {
@@ -153,7 +153,7 @@ mod parse_should {
     const STRING: Result<Token,Error> = Ok(Token::Str(Position { at: 0, len: 0 }));
     const L_PAREN: Result<Token,Error> = Ok(Token::LParen(0));
     const R_PAREN: Result<Token,Error> = Ok(Token::RParen(0));
-    const operator: Result<Token,Error> = Ok(Token::Operator { at: 0, operator_ix: 0 });
+    const OPERATOR: Result<Token,Error> = Ok(Token::Operator { at: 0, operator_ix: 0 });
 
     #[test]
     fn handle_numbers() {
@@ -163,13 +163,13 @@ mod parse_should {
 
     #[test]
     fn handle_single_unary() {
-        let mut tokens = vec![operator, NUMBER].into_iter();
+        let mut tokens = vec![OPERATOR, NUMBER].into_iter();
         assert_matches!(parse(&mut tokens), Ok(Expr::Unary {..}))
     }
 
     #[test]
     fn handle_nested_unary() {
-        let mut tokens = vec![operator, operator, NUMBER].into_iter();
+        let mut tokens = vec![OPERATOR, OPERATOR, NUMBER].into_iter();
         if let Ok(Expr::Unary{expr:unary, operator_ix:_}) = parse(&mut tokens) {
             if let Expr::Unary{expr:num, operator_ix:_} = *unary {
                 assert_matches!(*num, Expr::Number(..));
@@ -188,7 +188,7 @@ mod parse_should {
 
     #[test]
     fn handle_binary_expr() {
-        let mut tokens = vec![NUMBER, operator, NUMBER].into_iter();
+        let mut tokens = vec![NUMBER, OPERATOR, NUMBER].into_iter();
         assert_matches!(parse(&mut tokens), Ok(Expr::Binary(..)));
     }
 
@@ -196,9 +196,9 @@ mod parse_should {
     fn handle_multiple_binary_expr() {
         let mut tokens = vec![
             NUMBER,
-            operator,
+            OPERATOR,
             NUMBER,
-            operator,
+            OPERATOR,
             NUMBER].into_iter();
         if let Ok(Expr::Binary(bin_expr)) = parse(&mut tokens) {
             let expr = *bin_expr;
@@ -274,16 +274,19 @@ mod parse_should {
 
     #[test]
     fn error_on_incomplete() {
-        let mut tokens = vec![NUMBER, operator].into_iter();
+        let mut tokens = vec![NUMBER, OPERATOR].into_iter();
         let expr = parse(&mut tokens);
         assert_matches!(expr, Err(..));
     }
 
     #[test]
     fn error_on_tokenizer_error() {
-        let error:Result<Token,Error> = Err(Error{error:"".to_string(), at:0});
-        let mut tokens = vec![NUMBER, error].into_iter();
+        let error:Result<Token,Error> = Err(Error{error:"tokenizer".to_string(), at:0});
+        let mut tokens = vec![NUMBER, error, STRING].into_iter();
         let expr = parse(&mut tokens);
-        assert_matches!(expr, Err(..));
+        assert!(match expr {
+            Err(e) if e.error.contains("tokenizer") => true,
+            _ => false
+        });
     }
 }
