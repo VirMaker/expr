@@ -280,7 +280,7 @@ mod parse_should {
     }
 
     #[test]
-    fn error_on_tokenizer_error() {
+    fn report_tokenizer_error() {
         let error:Result<Token,Error> = Err(Error{error:"tokenizer".to_string(), at:0});
         let mut tokens = vec![NUMBER, error, STRING].into_iter();
         let expr = parse(&mut tokens);
