@@ -28,13 +28,9 @@ pub fn parse(tokens: &mut impl Iterator<Item = Result<Token,Error>>) -> Result<E
     result
 }
 
-fn peek(tokens: &mut Peekable<impl Iterator<Item=Token>>) -> Option<Token> {
-    tokens.peek().map(|t| *t)
-}
-
 fn expr(tokens: &mut Peekable<impl Iterator<Item=Token>>, precedence: u8) -> Result<Expr, Error> {
     let mut left = singular(tokens);
-    while let Some(token) = peek(tokens) {
+    while let Some(&token) = tokens.peek() {
         match token {
             Token::Operator {at:_, operator_ix} => {
                 let new_prec = operator::from(operator_ix).precedence;
@@ -58,7 +54,7 @@ fn expr(tokens: &mut Peekable<impl Iterator<Item=Token>>, precedence: u8) -> Res
 
 
 fn singular(tokens: &mut Peekable<impl Iterator<Item=Token>>) -> Result<Expr, Error> {
-    if let Some(token) = peek(tokens) {
+    if let Some(&token) = tokens.peek() {
         match token {
             Token::Operator{ at:_, operator_ix } => {
                 tokens.next();
